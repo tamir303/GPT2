@@ -1,0 +1,6 @@
+torch~=2.2.2
+numpy~=1.26.4
+tqdm~=4.67.1
+torchtext~=0.17.2
+matplotlib
+seaborn
