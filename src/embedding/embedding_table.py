@@ -6,7 +6,10 @@ class EmbeddingTable(nn.Module):
                 d_model,
                 vocab_size):
         super().__init__()
-        self.et = nn.Embedding(d_model, vocab_size) # (V, C)
+        self.et = nn.Embedding(vocab_size, d_model) # (V, C)
 
     def forward(self, x: torch.Tensor):
-        return self.et(x) # (B, T, C)
+        try:
+            return self.et(x) # (B, T, C)
+        except Exception as e:
+            print(f"Error {self.__class__}: {e} ")

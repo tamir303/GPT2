@@ -7,10 +7,10 @@ class Config:
     device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # Batch size for training. Defines how many samples will be processed together in one step.
-    batch_size: int = 32
+    batch_size: int = 16
 
     # The size of the input sequence that will be fed into the src (for transformer models, this is the block size).
-    block_size: int = 64
+    block_size: int = 32
 
     # Maximum number of training iterations.
     max_iters: int = 5000
@@ -25,7 +25,7 @@ class Config:
     eval_iters: int = 200
 
     # Dimensionality of the src's hidden representations. Typically, this is the size of the vectors inside the src.
-    d_model: int = 768
+    d_model: int = 64
 
     # Number of attention heads in the multi-head attention mechanism of the transformer src.
     # More heads allow the src to focus on different parts of the input simultaneously.

@@ -1,3 +1,5 @@
+import errno
+
 import torch
 import torch.nn as nn
 
@@ -15,7 +17,10 @@ class PositionalEncoding(nn.Module):
         pe[:, 0::2] = torch.sin(positions * div_term)
         pe[:, 1::2] = torch.cos(positions * div_term)
 
-        self.register_buffer('pe' ,pe.unsqueeze(0))
+        self.register_buffer('pe' ,pe)
 
     def forward(self, x: torch.Tensor):
-        return x + self.pe[:, :x.size(1), :].to(x.device) # (B, T, C)
+        try:
+            return x + self.pe
+        except Exception as e:
+            print(f"Error {self.__class__}: {e} ")

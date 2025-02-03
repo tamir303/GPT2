@@ -9,7 +9,6 @@ class Tokenizer:
 
         self.stoi = { t: i for i, t in enumerate(words) }
         self.itos = { i: t for i, t in enumerate(words) }
-        self.encoded_data = self.encode(x)
 
     def encode(self, input: Union[str, List[str]]) -> torch.Tensor:
         tokens = self.tokenizer(input)

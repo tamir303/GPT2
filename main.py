@@ -1,4 +1,7 @@
 from functools import lru_cache
+
+import torch
+
 from src.tokenizer import Tokenizer
 from src.embedding import EmbeddingTable, PositionalEncoding
 from src.config import Config
@@ -14,11 +17,9 @@ def load_data():
 load_data()
 
 tokenizer = Tokenizer(data)
-
-emb = EmbeddingTable(tokenizer.get_vocab_size(), Config.d_model)
 tokens_idx = tokenizer.encode(data)
-idx = emb(tokens_idx)
 
-pe = PositionalEncoding(Config.d_model, Config.block_size)
+emb = EmbeddingTable(vocab_size=tokenizer.get_vocab_size(), d_model=Config.d_model)
+idx = emb(tokens_idx[:Config.block_size])
+pe = PositionalEncoding(d_model=Config.d_model, max_seq_len=Config.block_size)
 idx = pe(idx)
-print(idx)
