@@ -37,5 +37,8 @@ class Config:
     # Dropout rate used to prevent overfitting. Dropout randomly drops units from the neural network during training.
     dropout: float = 0.0
 
+    # Model checkpoint filename
+    filename: str = "checkpoint.pth"
+
 
 torch.manual_seed(1337)

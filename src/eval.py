@@ -1,7 +1,7 @@
 import torch
 from torch import nn
-from utils import get_batch, split_train_test
-from config import Config
+from src.utils import get_batch, split_train_test
+from src.config import Config
 from typing import Dict
 
 @torch.no_grad()
@@ -10,7 +10,7 @@ def estimate_loss(model: nn.Module, data: torch.Tensor) -> Dict:
     model.eval()
 
     train, val = split_train_test(data)
-    for split_type, split_data in {"train": train, "validation": val}:
+    for split_type, split_data in [("train", train), ("validation", val)]:
         losses = torch.zeros(Config.eval_iters)
         for iter in range(Config.eval_iters):
             # Get random batch of X, y

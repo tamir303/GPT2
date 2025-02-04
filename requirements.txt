@@ -2,5 +2,6 @@ torch~=2.2.2
 numpy~=1.26.4
 tqdm~=4.67.1
 torchtext~=0.17.2
-matplotlib
-seaborn
+matplotlib~=3.10.0
+seaborn~=0.13.2
+scikit-learn~=1.6.1

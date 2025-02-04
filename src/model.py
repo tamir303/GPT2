@@ -18,7 +18,7 @@ class GPT2(nn.Module):
 
         self.token_embedding_table = EmbeddingTable(d_model, vocab_size)
         self.positional_encoder = PositionalEncoding(d_model, max_seq_len)
-        self.blocks = nn.Sequential(*[Block(d_model, num_heads, dropout, batch_size) for _ in range(num_layers)])
+        self.blocks = nn.Sequential(*[Block(d_model, num_heads, dropout, max_seq_len) for _ in range(num_layers)])
         self.ln_f = nn.LayerNorm(d_model)
         self.lm_h = nn.Linear(d_model, vocab_size) # Back to tokens
 

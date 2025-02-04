@@ -1,4 +1,5 @@
 import torch
+from torch import nn
 from src.config import Config
 
 def split_train_test(data: torch.Tensor, split=0.9) -> [torch.Tensor, torch.Tensor]:
@@ -9,6 +10,7 @@ def split_train_test(data: torch.Tensor, split=0.9) -> [torch.Tensor, torch.Tens
 
     return train_data, val_data
 
+
 def get_batch(data: torch.Tensor) -> [torch.Tensor, torch.Tensor]:
     # generate a small batch of data of inputs x and targets y
     ix = torch.randint(len(data) - Config.block_size, (Config.batch_size, ))
@@ -16,3 +18,25 @@ def get_batch(data: torch.Tensor) -> [torch.Tensor, torch.Tensor]:
     y = torch.stack([data[i + 1:i + Config.block_size + 1] for i in ix])
     x, y = x.to(Config.device), y.to(Config.device)
     return x, y
+
+
+def load_checkpoint(model: nn.Module, optimizer, filename=Config.filename, train: bool = False):
+    checkpoint = torch.load(filename)
+    if checkpoint is not None:
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        epoch = checkpoint['epoch']
+        loss = checkpoint['loss']
+        print(f"Checkpoint loaded. Resuming from epoch {epoch}, loss {loss:.4f}.")
+        return epoch, loss
+
+
+def save_checkpoint(self, model, optimizer, epoch, loss):
+    checkpoint = {
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'loss': loss,
+    }
+    torch.save(checkpoint, Config.filename)
+    print(f"\nCheckpoint saved at epoch {epoch}.")

@@ -49,6 +49,6 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor):
-        out = torch.concat([h(x) for h in self.heads], dim=1)
+        out = torch.concat([h(x) for h in self.heads], dim=-1)
         out = self.dropout(self.proj(out))
         return out
