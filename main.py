@@ -1,10 +1,5 @@
 from functools import lru_cache
-
-import torch
-
-from src.tokenizer import Tokenizer
-from src.embedding import EmbeddingTable, PositionalEncoding
-from src.config import Config
+from src import split_train_test, get_batch, Config, GPT2, Tokenizer
 
 data = []
 
@@ -14,12 +9,16 @@ def load_data():
     with open("src/data/ClimateChangeAnalysis.txt", "rt") as file:
         data = file.read()
 
+
 load_data()
-
 tokenizer = Tokenizer(data)
-tokens_idx = tokenizer.encode(data)
 
-emb = EmbeddingTable(vocab_size=tokenizer.get_vocab_size(), d_model=Config.d_model)
-idx = emb(tokens_idx[:Config.block_size])
-pe = PositionalEncoding(d_model=Config.d_model, max_seq_len=Config.block_size)
-idx = pe(idx)
+model = GPT2(
+    vocab_size  = tokenizer.get_vocab_size(),
+    d_model     = Config.d_model,
+    max_seq_len = Config.block_size,
+    batch_size  = Config.batch_size,
+    num_heads   = Config.n_heads,
+    dropout     = Config.dropout,
+    num_layers  = Config.n_layers
+)
