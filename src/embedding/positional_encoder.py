@@ -21,6 +21,6 @@ class PositionalEncoding(nn.Module):
 
     def forward(self, x: torch.Tensor):
         try:
-            return x + self.pe
+            return x + self.pe[:x.size(dim=1)]
         except Exception as e:
             print(f"Error {self.__class__}: {e} ")

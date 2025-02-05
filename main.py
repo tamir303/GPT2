@@ -1,41 +1,43 @@
-from functools import lru_cache
-from src import Config
-from src import GPT2, Tokenizer, Optimizer
-from src import Trainer
+import uvicorn
+from fastapi import FastAPI, HTTPException
+from src import ModelManager
+from api import GenerationRequest, GenerationResponse, load_data
+from contextlib import asynccontextmanager
 
+manager = ModelManager()
 
-data = []
+@asynccontextmanager
+async def lifespan(f_app: FastAPI):
+    try:
+        data = load_data()
+        manager.load_model(data)
+        yield
+        manager.end_experiment()
+    except Exception as e:
+        # In a production system, use a proper logger instead of print.
+        print(f"Error during startup model loading: {e}")
 
-@lru_cache()
-def load_data():
-    global data
-    with open("src/data/ClimateChangeAnalysis.txt", "rt") as file:
-        data = file.read()
-
-
-load_data()
-tokenizer = Tokenizer(data)
-encoded_data = tokenizer.encode(data)
-
-model = GPT2(
-    vocab_size  = tokenizer.get_vocab_size(),
-    d_model     = Config.d_model,
-    max_seq_len = Config.block_size,
-    batch_size  = Config.batch_size,
-    num_heads   = Config.n_heads,
-    dropout     = Config.dropout,
-    num_layers  = Config.n_layers
+app = FastAPI(
+    title="Transformer Model API",
+    description="Transformer Model API",
+    lifespan=lifespan,
+    version="1.0.0",
+    docs_url="/swagger",  # Changes the Swagger UI path
+    redoc_url="/redoc"  # Optionally, change the ReDoc path
 )
 
-optimizer = Optimizer(
-    params      = model.parameters(),
-    lr          = Config.learning_rate
-)
+@app.get("/health", tags=["Health"])
+async def health_check():
+    return {"status": "ok"}
 
-trainer = Trainer(
-    model           = model,
-    optimizer       = optimizer,
-    save_on_steps   = True
-)
+@app.post("/generate", response_model=GenerationResponse, tags=["Generation"])
+async def generate_text(request: GenerationRequest):
+    try:
+        generated = manager.generate_text(request.prompt, request.max_new_tokens)
+        return GenerationResponse(generated_text=generated)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-trainer.train(encoded_data)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=8000)

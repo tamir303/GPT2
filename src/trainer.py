@@ -24,17 +24,6 @@ class Trainer:
                  max_grad_norm: float = 1.0,
                  patience: int = 5):
 
-        self.model = model
-        self.optimizer = optimizer
-        self.writer = SummaryWriter(log_dir)
-
-        # Learning rate scheduler
-        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=1000, gamma=0.9)
-
-        # Early stopping parameters
-        self.best_val_loss = float("inf")
-        self.patience_counter = 0
-
         # Other params
         self.params = {
             "load_checkpoint": load_exiting_model,
@@ -45,13 +34,28 @@ class Trainer:
             "patience": patience
         }
 
+        self.current_epoch, best_val_loss = 0, float("inf")
+        if load_exiting_model:
+            self.current_epoch, best_val_loss = load_checkpoint(model, optimizer)
+
+        self.model = model
+        self.optimizer = optimizer
+        self.writer = SummaryWriter(log_dir)
+
+        # Learning rate scheduler
+        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=1000, gamma=0.9)
+
+        # Early stopping parameters
+        self.best_val_loss = best_val_loss
+        self.patience_counter = 0
+
         # Check if we have multiple GPUs
         if torch.cuda.device_count() > 1:
             print(f"Using {torch.cuda.device_count()} GPUs!")
             self.model = nn.DataParallel(self.model)  # Use multiple GPUs
 
     def train(self, x: torch.Tensor):
-        for iter in tqdm.tqdm(range(Config.max_iters), desc="Training Iterations", dynamic_ncols=True):
+        for iter in tqdm.tqdm(range(self.current_epoch, Config.max_iters), desc="Training Iterations", dynamic_ncols=True):
             logits: torch.Tensor
             loss: torch.Tensor
 
@@ -91,7 +95,7 @@ class Trainer:
                     self.patience_counter = 0
 
                     # Save best checkpoint
-                    save_checkpoint(iter, self.model, self.optimizer, val_loss, loss)
+                    save_checkpoint(model=self.model, optimizer=self.optimizer, epoch=iter, loss=val_loss)
                 else:
                     self.patience_counter += 1
                     if self.patience_counter >= self.params["patience"]:

@@ -6,21 +6,20 @@ from src.embedding import EmbeddingTable, PositionalEncoding
 
 class GPT2(nn.Module):
     def __init__(self,
-                vocab_size,
+                tokenizer,
                 max_seq_len,
                 d_model,
                 num_heads,
                 num_layers,
-                batch_size,
                 dropout=0.1):
         super().__init__()
         self.block_size = max_seq_len
 
-        self.token_embedding_table = EmbeddingTable(d_model, vocab_size)
+        self.token_embedding_table = EmbeddingTable(d_model, tokenizer.get_vocab_size())
         self.positional_encoder = PositionalEncoding(d_model, max_seq_len)
         self.blocks = nn.Sequential(*[Block(d_model, num_heads, dropout, max_seq_len) for _ in range(num_layers)])
         self.ln_f = nn.LayerNorm(d_model)
-        self.lm_h = nn.Linear(d_model, vocab_size) # Back to tokens
+        self.lm_h = nn.Linear(d_model, tokenizer.get_vocab_size()) # Back to tokens
 
     def forward(self, idx: torch.Tensor, targets: torch.Tensor = None):
         B, T = idx.shape
@@ -42,7 +41,8 @@ class GPT2(nn.Module):
         return logits, loss
 
     def generate(self, idx: torch.Tensor, max_new_tokens):
-        # idx is (B, T) array of indices
+        # idx is (B, ) array of tokens
+        idx = idx.unsqueeze(dim=1)
         for _ in range(max_new_tokens):
             # crop idx to the last block_size tokens
             idx_cond = idx[:, -self.block_size:]

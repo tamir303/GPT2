@@ -5,3 +5,8 @@ torchtext~=0.17.2
 matplotlib~=3.10.0
 seaborn~=0.13.2
 scikit-learn~=1.6.1
+fastapi
+uvicorn
+tensorboard
+pydantic
+mlflow

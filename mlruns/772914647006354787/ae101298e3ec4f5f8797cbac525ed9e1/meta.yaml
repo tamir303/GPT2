@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/tamirsp/PycharmProjects/GPT2/mlruns/772914647006354787/ae101298e3ec4f5f8797cbac525ed9e1/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '772914647006354787'
+lifecycle_stage: active
+run_id: ae101298e3ec4f5f8797cbac525ed9e1
+run_name: glamorous-owl-816
+run_uuid: ae101298e3ec4f5f8797cbac525ed9e1
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1738754431101
+status: 1
+tags: []
+user_id: tamirsp

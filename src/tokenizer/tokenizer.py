@@ -3,9 +3,9 @@ from typing import List, Union
 import torch
 
 class Tokenizer:
-    def __init__(self, x: Union[str, List[str]]):
+    def __init__(self, data: Union[str, List[str]]):
         self.tokenizer = get_tokenizer("basic_english")
-        words = set(self.tokenizer(x))
+        words = set(self.tokenizer(data))
 
         self.stoi = { t: i for i, t in enumerate(words) }
         self.itos = { i: t for i, t in enumerate(words) }
@@ -15,7 +15,7 @@ class Tokenizer:
         return torch.tensor([ self.stoi.get(token, -1) for token in tokens ], dtype=torch.long)
 
     def decode(self, token_ids: torch.Tensor) -> Union[str, List[str]]:
-        return [ " ".join(self.itos.get(token_id, "[INVALID]") for token_id in token_ids.tolist()) ]
+        return [ " ".join(self.itos.get(token_id, "[INVALID]") for token_id in token_ids) ]
 
     @staticmethod
     def __map_to_lower(tokens: Union[str, List[str]]) -> Union[str, List[str]]:

@@ -20,18 +20,22 @@ def get_batch(data: torch.Tensor) -> [torch.Tensor, torch.Tensor]:
     return x, y
 
 
-def load_checkpoint(model: nn.Module, optimizer, filename=Config.filename, train: bool = False):
-    checkpoint = torch.load(filename)
-    if checkpoint is not None:
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        epoch = checkpoint['epoch']
-        loss = checkpoint['loss']
-        print(f"Checkpoint loaded. Resuming from epoch {epoch}, loss {loss:.4f}.")
-        return epoch, loss
+def load_checkpoint(model: nn.Module, optimizer, filename=Config.filename):
+    try:
+        checkpoint = torch.load(filename)
+        if checkpoint is not None:
+            model.load_state_dict(checkpoint['model_state_dict'])
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            epoch = checkpoint['epoch']
+            loss = checkpoint['loss']
+            print(f"Checkpoint loaded. Resuming from epoch {epoch}, loss {loss:.4f}.")
+            return epoch, loss
+    except Exception as e:
+        print(f"Warning: {e}")
+        return 0, None
 
 
-def save_checkpoint(self, model, optimizer, epoch, loss):
+def save_checkpoint(model, optimizer, epoch, loss):
     checkpoint = {
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
