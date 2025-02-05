@@ -1,5 +1,6 @@
 import logging
 
+
 def get_logger() -> logging.Logger:
     # Configure a logger for the project
     logger = logging.getLogger("mlops_project")

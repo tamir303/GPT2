@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-import torch.nn.functional as F
+
 
 class FFN(nn.Module):
     d_ff = 4

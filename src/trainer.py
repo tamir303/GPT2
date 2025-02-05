@@ -1,17 +1,16 @@
 import torch
+import tqdm
+from sklearn.metrics import accuracy_score
 from torch import nn
 from torch.optim import Optimizer
-from torch.utils.tensorboard import SummaryWriter
 from torch.optim import lr_scheduler
+from torch.utils.tensorboard import SummaryWriter
 
-from sklearn.metrics import accuracy_score
+from src.config import Config
+from src.eval import estimate_loss
+from src.utils import get_batch
+from src.utils import load_checkpoint, save_checkpoint
 
-from src import get_batch
-from src import Config
-from src import estimate_loss
-from src import load_checkpoint, save_checkpoint
-
-import tqdm
 
 class Trainer:
     def __init__(self,
@@ -20,7 +19,7 @@ class Trainer:
                  load_exiting_model: bool = False,
                  save_on_steps: bool = False,
                  device: str = "cpu",
-                 log_dir:str = "runs",
+                 log_dir: str = "runs",
                  max_grad_norm: float = 1.0,
                  patience: int = 5):
 
@@ -55,7 +54,8 @@ class Trainer:
             self.model = nn.DataParallel(self.model)  # Use multiple GPUs
 
     def train(self, x: torch.Tensor):
-        for iter in tqdm.tqdm(range(self.current_epoch, Config.max_iters), desc="Training Iterations", dynamic_ncols=True):
+        for iter in tqdm.tqdm(range(self.current_epoch, Config.max_iters), desc="Training Iterations",
+                              dynamic_ncols=True):
             logits: torch.Tensor
             loss: torch.Tensor
 
@@ -87,7 +87,8 @@ class Trainer:
                 self.writer.add_scalar('Loss/validation', val_loss, iter)
                 self.writer.add_scalar('Accuracy/validation', acc, iter)
 
-                tqdm.tqdm.write(f"\nstep {iter}: train loss {losses['train']:.4f}, val loss {val_loss:.4f}, val acc {acc:.4f}")
+                tqdm.tqdm.write(
+                    f"\nstep {iter}: train loss {losses['train']:.4f}, val loss {val_loss:.4f}, val acc {acc:.4f}")
 
                 # Early stopping logic
                 if val_loss < self.best_val_loss:
@@ -101,6 +102,5 @@ class Trainer:
                     if self.patience_counter >= self.params["patience"]:
                         print(f"\nEarly stopping at iteration {iter}.")
                         return  # Stop training early
-
 
             self.scheduler.step()

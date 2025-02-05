@@ -1,35 +1,36 @@
-from torchtext.data.utils import get_tokenizer
-from typing import List, Union
-import sentencepiece as spm
 import os
+from typing import List, Union
+
+import sentencepiece as spm
 import torch
+
 
 class Tokenizer:
     __options = dict(
-      input_format="text",
-      model_prefix="tok400", # output filename prefix
-      model_type="bpe",
-      vocab_size=1000,
-      normalization_rule_name="identity", # ew, turn off normalization
-      remove_extra_whitespaces=False,
-      input_sentence_size=200000000, # max number of training sentences
-      max_sentence_length=4192, # max number of bytes per sentence
-      seed_sentencepiece_size=1000000,
-      shuffle_input_sentence=True,
-      character_coverage=0.99995,
-      byte_fallback=True,
-      split_digits=True,
-      split_by_unicode_script=True,
-      split_by_whitespace=True,
-      split_by_number=True,
-      max_sentencepiece_length=16,
-      add_dummy_prefix=True,
-      allow_whitespace_only_pieces=True,
-      unk_id=0,
-      bos_id=1,
-      eos_id=2,
-      pad_id=-1,
-      num_threads=os.cpu_count(), # use ~all system resources
+        input_format="text",
+        model_prefix="tok400",  # output filename prefix
+        model_type="bpe",
+        vocab_size=1000,
+        normalization_rule_name="identity",  # ew, turn off normalization
+        remove_extra_whitespaces=False,
+        input_sentence_size=200000000,  # max number of training sentences
+        max_sentence_length=4192,  # max number of bytes per sentence
+        seed_sentencepiece_size=1000000,
+        shuffle_input_sentence=True,
+        character_coverage=0.99995,
+        byte_fallback=True,
+        split_digits=True,
+        split_by_unicode_script=True,
+        split_by_whitespace=True,
+        split_by_number=True,
+        max_sentencepiece_length=16,
+        add_dummy_prefix=True,
+        allow_whitespace_only_pieces=True,
+        unk_id=0,
+        bos_id=1,
+        eos_id=2,
+        pad_id=-1,
+        num_threads=os.cpu_count(),  # use ~all system resources
     )
 
     __model_file = 'tok400.model'

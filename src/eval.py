@@ -1,8 +1,11 @@
+from typing import Dict
+
 import torch
 from torch import nn
-from src.utils import get_batch, split_train_test
+
 from src.config import Config
-from typing import Dict
+from src.utils import get_batch, split_train_test
+
 
 @torch.no_grad()
 def estimate_loss(model: nn.Module, data: torch.Tensor) -> Dict:

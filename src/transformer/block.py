@@ -1,6 +1,8 @@
 import torch
 from torch import nn
-from src.transformer import MultiHeadAttention, FFN
+
+from src.transformer.multihead import MultiHeadAttention
+from src.transformer.feedforward import FFN
 
 class Block(nn.Module):
     def __init__(self,

@@ -1,8 +1,8 @@
-import os
-import io
 from pathlib import Path
+
 from PyPDF2 import PdfReader
 from docx import Document
+
 
 class DocumentProcessor:
     def __init__(self, input_path: str):

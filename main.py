@@ -1,30 +1,34 @@
-import uvicorn
-from fastapi import FastAPI, HTTPException
-from fastapi import File, UploadFile
-from src import ModelManager
-from api import GenerationRequest, GenerationResponse, data_sample_test
-from api import DocumentProcessor
+import os
+import shutil
 from contextlib import asynccontextmanager
 from pathlib import Path
-import shutil
-import os
+
+import uvicorn
 from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
+from fastapi import File, UploadFile
+
+from api import DocumentProcessor
+from api import GenerationRequest, GenerationResponse, data_sample_test
+from src import ModelManager
 
 load_dotenv()
 manager = ModelManager()
-processor : DocumentProcessor | None = None
+processor: DocumentProcessor | None = None
+
 
 @asynccontextmanager
 async def lifespan(f_app: FastAPI):
     try:
         if os.getenv("ENV") == "Testing" or os.getenv("ENV") is None:
-            manager.load_model(data = data_sample_test.get_content(), file_path = data_sample_test.get_file_path())
+            manager.load_model(data=data_sample_test.get_content(), file_path=data_sample_test.get_file_path())
         else:
-            manager.load_model(data = processor.get_content(), file_path = processor.get_file_path())
+            manager.load_model(data=processor.get_content(), file_path=processor.get_file_path())
         yield
         manager.end_experiment()
     except Exception as e:
         print(f"Error during startup model loading: {e}")
+
 
 app = FastAPI(
     title="Transformer Model API",
@@ -35,9 +39,11 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+
 @app.get("/health", tags=["Health"])
 async def health_check():
     return {"status": "ok"}
+
 
 @app.post("/process_file/")
 async def process_file(file: UploadFile = File(...)):
@@ -61,6 +67,7 @@ async def process_file(file: UploadFile = File(...)):
         "file_name": processed_file_path.name,
         "content": content
     }
+
 
 @app.post("/generate", response_model=GenerationResponse, tags=["Generation"])
 async def generate_text(request: GenerationRequest):

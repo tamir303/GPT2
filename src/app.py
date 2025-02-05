@@ -1,14 +1,19 @@
 from typing import List, Union
+
 import mlflow
-
-from src.config import Config
-from src.logger import get_logger
-from src import GPT2, Tokenizer, Trainer, load_checkpoint
-from src import estimate_loss
-
 from torch.optim import AdamW as Optimizer
 
+from src.tokenizer import Tokenizer
+from src.model import GPT2
+from src.trainer import Trainer
+
+from src.eval import estimate_loss
+from src.utils import load_checkpoint
+from src.config import Config
+from src.logger import get_logger
+
 logger = get_logger()
+
 
 class ModelManager:
     def __init__(self, config: Config = Config()):
@@ -73,7 +78,6 @@ class ModelManager:
         mlflow.log_metrics(metrics)
         logger.info(f"Training metrics: {metrics}")
 
-
     def generate_text(self, data: Union[List[str], str], max_new_tokens: int = 2000) -> str:
         """
         Generates text based on the provided prompt.
@@ -89,7 +93,6 @@ class ModelManager:
 
         mlflow.log_text("".join(result), artifact_file="generated_text.txt")
         return "".join(result)
-
 
     def __start_experiment(self, experiment_name: str = "DefaultExperiment") -> None:
         """
