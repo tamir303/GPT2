@@ -1,7 +1,11 @@
 from functools import lru_cache
 
+def get_file_path():
+    return "data/ClimateChangeAnalysis.txt"
 
 @lru_cache()
-def load_data() -> str:
-    with open("data/ClimateChangeAnalysis.txt", "rt") as file:
+def get_content() -> str:
+    with open(get_file_path(), "rt") as file:
         return file.read()
+
+

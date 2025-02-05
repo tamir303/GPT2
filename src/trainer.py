@@ -34,7 +34,7 @@ class Trainer:
             "patience": patience
         }
 
-        self.current_epoch, best_val_loss = 0, float("inf")
+        self.current_epoch = 0, float("inf")
         if load_exiting_model:
             self.current_epoch, best_val_loss = load_checkpoint(model, optimizer)
 

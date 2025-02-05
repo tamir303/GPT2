@@ -18,11 +18,11 @@ class ModelManager:
         self.optimizer = None
         self.trainer = None
 
-    def load_model(self, data: Union[List[str], str]) -> None:
+    def load_model(self, data: Union[List[str], str], file_path: str) -> None:
         """Initializes the tokenizer, model, optimizer, and trainer using the provided data."""
         try:
             logger.info("Initializing tokenizer and model components...")
-            self.tokenizer = Tokenizer(data)
+            self.tokenizer = Tokenizer(file_path)
 
             self.model = GPT2(
                 tokenizer=self.tokenizer,
@@ -46,9 +46,14 @@ class ModelManager:
                 device=self.config.device
             )
 
-            load_checkpoint(self.model, self.optimizer)
+            epoch, loss = load_checkpoint(self.model, self.optimizer)
+            if epoch == 0:
+                logger.info("No Model found...\n training new one!.")
+                self.train_model(data)
+            else:
+                logger.info("Model loaded successfully.")
+
             self.__start_experiment("CustomGPT2Experiment")
-            logger.info("Model loaded successfully.")
 
         except Exception as e:
             logger.exception("Error while loading model components.")
@@ -64,7 +69,7 @@ class ModelManager:
         self.trainer.train(encoded_data)
 
         # Here, one might log final training metrics. For example:
-        metrics = estimate_loss(encoded_data)
+        metrics = estimate_loss(self.model, encoded_data)
         mlflow.log_metrics(metrics)
         logger.info(f"Training metrics: {metrics}")
 
@@ -82,8 +87,8 @@ class ModelManager:
         result = self.tokenizer.decode(generated_ids[0].tolist())
         logger.info("Text generation complete.")
 
-        mlflow.log_text(" ".join(result), artifact_file="generated_text.txt")
-        return " ".join(result)
+        mlflow.log_text("".join(result), artifact_file="generated_text.txt")
+        return "".join(result)
 
 
     def __start_experiment(self, experiment_name: str = "DefaultExperiment") -> None:

@@ -32,7 +32,7 @@ def load_checkpoint(model: nn.Module, optimizer, filename=Config.filename):
             return epoch, loss
     except Exception as e:
         print(f"Warning: {e}")
-        return 0, None
+        return 0, float("inf")
 
 
 def save_checkpoint(model, optimizer, epoch, loss):
