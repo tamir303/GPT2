@@ -17,25 +17,26 @@ class GPT2(nn.Module):
         super().__init__()
         self.block_size = max_seq_len
 
-        self.token_embedding_table = EmbeddingTable(d_model, tokenizer.get_vocab_size())
-        self.positional_encoder = PositionalEncoding(d_model, max_seq_len)
-        self.decoder_blocks = nn.Sequential(*[DecoderBlock(d_model, num_heads, dropout, max_seq_len) for _ in range(num_layers)])
-        self.ln_f = nn.LayerNorm(d_model)
-        self.lm_h = nn.Linear(d_model, tokenizer.get_vocab_size())  # Back to tokens
+        self.emb_enc_tokens = nn.Sequential(
+            EmbeddingTable(d_model, tokenizer.get_vocab_size()),
+            PositionalEncoding(d_model, max_seq_len),
+        )
 
         self.encoder = nn.Sequential(
-            self.token_embedding_table,
-            self.positional_encoder,
             *[EncoderBlock(d_model, num_heads, dropout, max_seq_len) for _ in range(num_layers)]
         )
 
-    def forward(self, idx: torch.Tensor, targets: torch.Tensor = None):
-        B, T = idx.shape
-        out = self.token_embedding_table(idx)
-        out = self.positional_encoder(out)
-        out = self.decoder_blocks(out)
-        out = self.ln_f(out)
-        logits: torch.Tensor = self.lm_h(out)  # (B, T, Vocab_size)
+        self.decoder = nn.Sequential(
+            nn.Sequential(*[DecoderBlock(d_model, num_heads, dropout, max_seq_len, first_skip = i == 0) for i in range(num_layers)]),
+            nn.LayerNorm(d_model),
+            nn.Linear(d_model, tokenizer.get_vocab_size()) # Back to tokens
+        )
+
+    def forward(self, idx: torch.Tensor, targets: torch.Tensor = None, use_encoder : bool = True):
+        out = idx
+        if use_encoder:
+            out = self.encoder(out)
+        logits = self.decoder(out) # (B, T, Vocab_size)
 
         if targets is None:
             loss = None
@@ -51,10 +52,12 @@ class GPT2(nn.Module):
     def generate(self, idx: torch.Tensor, max_new_tokens):
         # idx is (B, ) array of tokens
         # use attention to encode possible next id
+        first_idx_flag = True
         for _ in range(max_new_tokens):
             # crop idx to the last block_size tokens
             idx_cond = idx[:, -self.block_size:]
-            logits, loss = self(idx_cond)
+            logits, loss = self(idx_cond, first_idx_flag)
+            first_idx_flag = False
             # focus only on last token
             logits = logits[:, -1, :]  # (B, C)
             # apply softmax to get probs

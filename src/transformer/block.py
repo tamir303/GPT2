@@ -9,11 +9,12 @@ class DecoderBlock(nn.Module):
                  d_model,
                  n_head,
                  dropout,
-                 block_size):
+                 block_size,
+                 first_skip):
         super().__init__()
 
         head_size = d_model // n_head
-        self.initial_encoded_ids = None
+        self.first_skip = first_skip
         self.ln1 = nn.LayerNorm(d_model)
         self.ln2 = nn.LayerNorm(d_model)
         self.ln3 = nn.LayerNorm(d_model)
@@ -21,15 +22,10 @@ class DecoderBlock(nn.Module):
         self.sa = MultiHeadAttention(n_head, head_size, d_model, dropout, block_size, False)
         self.ffwd = FFN(d_model, dropout)
 
-        self.register_buffer("initial_encoded_ids", None)
-
     def forward(self, x: torch.Tensor):
-        if self.initial_encoded_ids is None:
+        if not self.first_skip:
             x = x + self.masked_sa(self.ln1(x))
-        else:
-            x = self.initial_encoded_ids
-
-        self.register_buffer("initial_encoded_ids", None)
+            self.first_skip = False
         x = x + self.sa(self.ln2(x))
         x = x + self.ffwd(self.ln3(x))
 
