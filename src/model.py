@@ -33,7 +33,8 @@ class GPT2(nn.Module):
         )
 
     def forward(self, idx: torch.Tensor, targets: torch.Tensor = None, use_encoder : bool = True):
-        out = idx
+        out = self.emb_enc_tokens(idx) # (B, T, C)
+
         if use_encoder:
             out = self.encoder(out)
         logits = self.decoder(out) # (B, T, Vocab_size)

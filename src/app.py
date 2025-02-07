@@ -14,9 +14,13 @@ from src.logger import get_logger
 
 logger = get_logger()
 
-
 class ModelManager:
+    _instance = None
+
     def __init__(self, config: Config = Config()):
+        if hasattr(self, "_instance") and self._instance is not None:
+            return
+
         self.config = config
         self.tokenizer = None
         self.model = None
@@ -118,3 +122,4 @@ class ModelManager:
         """
         mlflow.end_run()
         logger.info("MLflow run ended.")
+
