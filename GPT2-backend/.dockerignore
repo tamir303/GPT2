@@ -1,0 +1,19 @@
+# Ignore virtual environment directories
+venv/
+.env/
+.venv/
+.idea/
+
+# Ignore Python cache files
+__pycache__
+*.pyc
+*.pyo
+
+# Ignore local logs, temporary files, or large data directories
+logs/
+tmp/
+data/
+
+tok400.model
+tok400.vocab
+checkpoint.pth
