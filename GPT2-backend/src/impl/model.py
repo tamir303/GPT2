@@ -90,8 +90,7 @@ class GPT2(nn.Module):
 
             return tgt_idx
         except Exception as e:
-            print(e)
-            return { 'error': 'something went wrong!' }
+            return { 'error': f'something went wrong! {e}' }
 
 
     def _init_weights(self, module):

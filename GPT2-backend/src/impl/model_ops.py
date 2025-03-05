@@ -1,9 +1,12 @@
 import mlflow
 from typing import List, Union
+from src.impl.model import GPT2
 from src.impl.trainer import Trainer
 from src.impl.eval import estimate_loss
 from src.impl.config import Config
 from src.impl.logger import get_logger
+from src.impl.tokenizer import Tokenizer, LetterTokenizer
+from torch.optim import AdamW
 
 logger = get_logger()
 
@@ -107,3 +110,43 @@ def generate_text(
     mlflow.log_text(result_str, artifact_file="generated_text.txt")
     logger.info("Text generation complete.")
     return result_str
+
+def setup_tokenizer(
+        vocab_file: str = None
+) -> Tokenizer | LetterTokenizer:
+    return LetterTokenizer()
+
+def setup_model(
+        tokenizer,
+        config
+) -> GPT2:
+    return GPT2(
+        tokenizer=tokenizer,
+        d_model=config.d_model,
+        max_seq_len=config.block_size,
+        num_heads=config.n_heads,
+        dropout=config.dropout,
+        num_layers=config.n_layers
+    )
+
+def setup_trainer(
+    model,
+    optimizer,
+    config
+) -> Trainer:
+    return Trainer(
+        model=model,
+        optimizer=optimizer,
+        load_exiting_model=False,
+        save_on_steps=True,
+        device=config.device
+    )
+
+def setup_optimizer(
+        model,
+        config
+) -> AdamW:
+    return AdamW(
+        model.parameters(),
+        lr=config.learning_rate
+    )

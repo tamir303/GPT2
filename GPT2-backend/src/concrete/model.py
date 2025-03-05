@@ -4,8 +4,7 @@ from src.impl.model_ops import generate_text
 from src.interface.step import Step
 from src.impl.config import Config
 from src.impl.eval import estimate_loss
-from src.impl.model import GPT2
-from src.impl.trainer import Trainer
+from src.impl.model_ops import setup_model, setup_trainer, setup_optimizer
 
 class ModelCreateStep(Step):
     """
@@ -20,15 +19,7 @@ class ModelCreateStep(Step):
             raise ValueError("ModelTrainStep requires input_data")
 
         tokenizer, test, train = input_data
-
-        model = GPT2(
-            tokenizer=tokenizer,
-            max_seq_len=self.config.block_size,
-            d_model=self.config.d_model,
-            num_heads=self.config.n_heads,
-            num_layers=self.config.n_layers,
-            dropout=self.config.dropout
-        )
+        model = setup_model(tokenizer, self.config)
 
         return model, tokenizer, test, train
 
@@ -53,19 +44,8 @@ class ModelTrainStep(Step):
             raise ValueError("ModelTrainStep requires input_data")
 
         model, tokenizer, test, train = input_data
-
-        if self.optimizer is None:
-            self.optimizer = torch.optim.AdamW(model.parameters(), lr=self.config.learning_rate)
-
-        # Create a Trainer
-        trainer = Trainer(
-            model=model,
-            optimizer=self.optimizer,
-            load_exiting_model=False,
-            save_on_steps=True,
-            device=self.config.device
-        )
-
+        optimizer = setup_optimizer(model, self.config)
+        trainer = setup_trainer(model, optimizer, self.config)
         trainer.train(train)
 
         return model, tokenizer, test

@@ -1,7 +1,6 @@
-from src.impl.tokenizer import Tokenizer
 from src.interface.step import Step
 from src.impl import data_ingestion, data_preprocess, utils
-
+from src.impl.model_ops import setup_tokenizer
 
 class DataIngestionStep(Step):
     def __init__(self, source_path):
@@ -52,6 +51,6 @@ class DataTokenizer(Step):
             raise ValueError("No input data provided.")
 
         data, path, test, train = input_data
-        tokenizer = Tokenizer(path)
+        tokenizer = setup_tokenizer(path)
 
         return tokenizer, test, train

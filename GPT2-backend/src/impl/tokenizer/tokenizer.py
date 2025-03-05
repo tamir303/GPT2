@@ -3,8 +3,6 @@ from typing import List, Union
 
 import sentencepiece as spm
 import torch
-from pyasn1_modules.rfc1902 import Integer
-
 
 class Tokenizer:
     __options = dict(
@@ -62,15 +60,15 @@ class Tokenizer:
             # Return an empty tensor in case of failure
             return torch.tensor([])
 
-    def decode(self, token_ids: torch.Tensor) -> Union[str, List[str]]:
-            output = []
-            for token_id in token_ids:
-                try:
-                    output.append(self.sp.Decode(int(token_id)))
-                except Exception as e:
-                    print(f"Decoding error: TOKEN ID: {int(token_id)} => Error: {e}")
-                    output.append('<UNK>')
-            return "".join(output)
+    def decode(self, token_ids: list) -> Union[str, List[str]]:
+        print(f"token_ids: {token_ids}, type: {type(token_ids)}")
+        try:
+            token_ids = list(map(int, token_ids))
+            output = [self.sp.Decode(token_ids)]
+        except Exception as e:
+            print(f"Decoding error: {e}")
+            return []
+        return "".join(output)
 
     def get_vocab_size(self) -> int:
         return self.sp.vocab_size()

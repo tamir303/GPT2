@@ -2,11 +2,9 @@ from click import prompt
 from torch.optim import AdamW
 
 from src.impl.config import Config
-from src.impl.model import GPT2
-from src.impl.tokenizer import Tokenizer
 from src.impl.utils import load_checkpoint
 from src.interface import Step
-
+from src.impl.model_ops import setup_model, setup_trainer, setup_optimizer, setup_tokenizer
 
 class LoadTokenizerStep(Step):
     """
@@ -28,8 +26,8 @@ class LoadTokenizerStep(Step):
 
         if input_data is not None:
             prompt = input_data
+        tokenizer = setup_tokenizer(self.vocab_file)
 
-        tokenizer = Tokenizer(self.vocab_file)
         return prompt, tokenizer
 
 
@@ -52,17 +50,8 @@ class LoadModelStep(Step):
         """
 
         prompt, tokenizer = input_data  # We expect the tokenizer as input_data
-        model = GPT2(
-            tokenizer=tokenizer,
-            d_model=self.config.d_model,
-            max_seq_len=self.config.block_size,
-            num_heads=self.config.n_heads,
-            dropout=self.config.dropout,
-            num_layers=self.config.n_layers
-        )
-
-        # Create optimizer
-        optimizer = AdamW(model.parameters(), lr=self.config.learning_rate)
+        model = setup_model(tokenizer, self.config)
+        optimizer = setup_optimizer(model, self.config)
 
         # Try to load checkpoint if it exists
         epoch, loss = load_checkpoint(model, optimizer)
