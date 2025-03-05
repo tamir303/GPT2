@@ -77,17 +77,21 @@ class GPT2(nn.Module):
         return logits, loss
 
     def generate(self, src_idx, max_new_tokens):
-        self.eval()
+        try:
+            self.eval()
 
-        tgt_idx = None
-        for _ in range(max_new_tokens):
-            idx_cond = src_idx[:, -self.block_size:]
-            logits, loss = self(idx_cond, None)
-            logits = logits[:, -1, :]
-            next_token = torch.multinomial(F.softmax(logits, dim=-1), num_samples=1)
-            tgt_idx = torch.cat((tgt_idx, next_token), dim=1)
+            tgt_idx = torch.tensor([])
+            for _ in range(max_new_tokens):
+                idx_cond = src_idx[:, -self.block_size:]
+                logits, loss = self(idx_cond, None)
+                logits = logits[:, -1, :]
+                next_token = torch.multinomial(F.softmax(logits, dim=-1), num_samples=1)
+                tgt_idx = torch.cat((tgt_idx, next_token), dim=1)
 
-        return tgt_idx
+            return tgt_idx
+        except Exception as e:
+            print(e)
+            return { 'error': 'something went wrong!' }
 
 
     def _init_weights(self, module):

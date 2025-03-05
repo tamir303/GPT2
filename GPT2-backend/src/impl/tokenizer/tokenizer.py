@@ -3,6 +3,7 @@ from typing import List, Union
 
 import sentencepiece as spm
 import torch
+from pyasn1_modules.rfc1902 import Integer
 
 
 class Tokenizer:
@@ -46,10 +47,30 @@ class Tokenizer:
             self.sp.Load(self.__model_file)
 
     def encode(self, raw: Union[str, List[str]]) -> torch.Tensor:
-        return torch.tensor([self.sp.Encode(raw)])
+        try:
+            # If raw is a list, encode each sentence individually
+            if isinstance(raw, list):
+                encoded = [self.sp.Encode(sentence) for sentence in raw]
+            elif isinstance(raw, str):
+                encoded = [self.sp.Encode(raw)]
+            else:
+                raise ValueError("Input to encode must be a string or list of strings.")
+            # Wrap the result in a tensor (if needed, adjust shape as desired)
+            return torch.tensor(encoded)
+        except Exception as e:
+            print(f"Encoding error: {e}")
+            # Return an empty tensor in case of failure
+            return torch.tensor([])
 
     def decode(self, token_ids: torch.Tensor) -> Union[str, List[str]]:
-        return self.sp.Decode(token_ids)
+            output = []
+            for token_id in token_ids:
+                try:
+                    output.append(self.sp.Decode(int(token_id)))
+                except Exception as e:
+                    print(f"Decoding error: TOKEN ID: {int(token_id)} => Error: {e}")
+                    output.append('<UNK>')
+            return "".join(output)
 
     def get_vocab_size(self) -> int:
         return self.sp.vocab_size()

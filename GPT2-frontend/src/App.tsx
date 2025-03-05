@@ -1,15 +1,8 @@
 import React from 'react';
-import './App.css';
-import ChatScreen from "./screens/chatscreen/chatscreen";
+import Screen from './screens/ChatScreen/ChatScreen';
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-          <ChatScreen />
-      </header>
-    </div>
-  );
+    return <Screen />
 }
 
 export default App;
