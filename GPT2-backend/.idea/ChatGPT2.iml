@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/.venv" />
+      <excludeFolder url="file://$MODULE_DIR$/mlruns" />
+      <excludeFolder url="file://$MODULE_DIR$/mlruns/.trash" />
+      <excludeFolder url="file://$MODULE_DIR$/mlruns/0/506285437b0a4bed8f5fffc94c7a88a0/artifacts" />
+      <excludeFolder url="file://$MODULE_DIR$/mlruns/0/506285437b0a4bed8f5fffc94c7a88a0/metrics" />
+      <excludeFolder url="file://$MODULE_DIR$/mlruns/0/506285437b0a4bed8f5fffc94c7a88a0/params" />
+      <excludeFolder url="file://$MODULE_DIR$/mlruns/0/b8d1a281eb3f4dd7955d04582fd37613/artifacts" />
+      <excludeFolder url="file://$MODULE_DIR$/mlruns/0/b8d1a281eb3f4dd7955d04582fd37613/metrics" />
+      <excludeFolder url="file://$MODULE_DIR$/mlruns/0/b8d1a281eb3f4dd7955d04582fd37613/params" />
+      <excludeFolder url="file://$MODULE_DIR$/mlruns/772914647006354787/ae101298e3ec4f5f8797cbac525ed9e1/metrics" />
+      <excludeFolder url="file://$MODULE_DIR$/runs" />
+      <excludeFolder url="file://$MODULE_DIR$/temp_files" />
+    </content>
+    <orderEntry type="jdk" jdkName="Python 3.12 (ChatGPT2)" jdkType="Python SDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

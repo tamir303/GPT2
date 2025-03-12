@@ -1,0 +1,1 @@
+from src.workflows.training import TrainerPipeline
