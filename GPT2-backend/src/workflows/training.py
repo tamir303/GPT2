@@ -1,12 +1,11 @@
 import logging
 from src.etc.logger import CustomLogger
-from src.impl import init_tokenizer, init_model, init_trainer, get_loss, initialize_optimizer, split_data
+from src.impl import init_tokenizer, init_model, init_trainer, get_loss, initialize_optimizer, split_data, get_data_loader
 from src.etc.config import HyperParams, Config
-from data import load_text_file
 
 class TrainerPipeline:
     def __init__(self, file_path: str):
-        # Initialize logger at module level
+        # Set up a dedicated logger for the pipeline
         self.logger = CustomLogger(
             log_name='Tokenizer',
             log_level=logging.DEBUG,
@@ -14,24 +13,40 @@ class TrainerPipeline:
             log_filename='tokenizer.log'
         ).get_logger()
 
-        logging.info("Fetching configurations...")
+        # Fetch configurations
         self.config: HyperParams = Config
+        self.logger.info("Configurations fetched.")
 
-        logging.info("Initializing Tokenizer...")
+        # Initialize Tokenizer, Model, Optimizer, and Trainer
+        self.logger.info("Initializing Tokenizer...")
         self.tokenizer = init_tokenizer(file_path)
 
-        logging.info("Initializing Model...")
-        self.model = init_model(self.tokenizer.get_vocab_size(), self.config)
+        self.logger.info("Initializing Model...")
+        self.model = init_model(self.tokenizer.get_vocab_size())
 
-        logging.info("Initializing Optimizer...")
+        self.logger.info("Initializing Optimizer...")
         self.optimizer = initialize_optimizer(self.model, self.config)
 
-        logging.info("Initializing Trainer...")
+        self.logger.info("Initializing Trainer...")
         self.trainer = init_trainer(self.model, self.optimizer)
 
+        self.logger.info("Loading text data using DataLoader...")
+        self.data_loader = get_data_loader(file_path)
+
     def run(self):
-        data = load_text_file()
-        tensor_data = self.tokenizer.encode(data)
+        # Combine the loaded lines into a single text string
+        data_text = "\n".join(self.data_loader.get_file_content())
+        self.logger.debug("Loaded data text with length: %d", len(data_text))
+
+        # Encode the text into a tensor representation
+        tensor_data = self.tokenizer.encode(data_text)
+
+        # Split data into training and testing sets
         train, test = split_data(tensor_data, self.config.split_ratio)
+
+        # Train the model using the training data
         self.trainer.train(train)
-        self.logger.info(f"Test Loss: {get_loss(self.model, test)}")
+
+        # Evaluate the model and log test loss
+        test_loss = get_loss(self.model, test)
+        self.logger.info("Test Loss: %.4f", test_loss)

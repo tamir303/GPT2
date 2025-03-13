@@ -2,11 +2,15 @@ import logging
 import logging.handlers
 import os
 from datetime import datetime
-
+from src.etc.config import Config
 
 class CustomLogger:
-    def __init__(self, log_name='app_logger', log_level=logging.INFO,
-                 log_dir='logs', log_filename=None):
+    def __init__(self,
+                 log_name='app_logger',
+                 log_level=Config.log_level,
+                 log_dir=Config.log_dir,
+                 log_filename=None
+        ):
         """
         Initialize the custom logger
 

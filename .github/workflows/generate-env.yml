@@ -1,0 +1,24 @@
+name: Generate .env in GPT2-backend on Pull Request
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  generate-env:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Create .env file in GPT2-backend directory
+        run: |
+          cat <<EOF > GPT2-backend/.env
+          API_KEY=zk5O2CKoyQu8IP5DFUZrTsNjLJDOChep4YaZmXzd5VLMwqSgHa2ZvoXz8ADB0dHh
+          ALGORITHM=HS256
+          EOF
+
+      # Optional: Verify the file creation (remove for production to avoid exposing secrets)
+      - name: Verify .env file creation
+        run: cat GPT2-backend/.env

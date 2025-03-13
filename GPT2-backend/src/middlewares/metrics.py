@@ -1,0 +1,1 @@
+from starlette_exporter import PrometheusMiddleware, handle_metrics

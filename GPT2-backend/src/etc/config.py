@@ -81,5 +81,5 @@ def load_config(config_path: str) -> HyperParams:
 
 Config = load_config("config.yaml")
 
-torch.manual_seed(42)
-torch.cuda.manual_seed_all(42)
+torch.manual_seed(Config.seed)
+torch.cuda.manual_seed_all(Config.seed)
