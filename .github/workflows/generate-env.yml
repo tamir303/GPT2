@@ -15,8 +15,8 @@ jobs:
       - name: Create .env file in GPT2-backend directory
         run: |
           cat <<EOF > GPT2-backend/.env
-          API_KEY=zk5O2CKoyQu8IP5DFUZrTsNjLJDOChep4YaZmXzd5VLMwqSgHa2ZvoXz8ADB0dHh
-          ALGORITHM=HS256
+          API_KEY=${{ secrets.API_KEY }}
+          ALGORITHM=${{ secrets.ALGORITHM }}
           EOF
 
       # Optional: Verify the file creation (remove for production to avoid exposing secrets)
