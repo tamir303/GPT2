@@ -12,7 +12,7 @@ class ITraining(ABC):
         self.optimizer = optimizer
 
     @abstractmethod
-    def train(self, data: torch.Tensor) -> None:
+    def train(self, data: torch.Tensor, *args: any, **kwargs: any) -> None:
         """
         Train the model on the given data.
 

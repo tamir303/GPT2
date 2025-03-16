@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
 from bson.objectid import ObjectId
 
 class ModelSchema(BaseModel):
@@ -21,15 +20,16 @@ class ModelTrainStatus(BaseModel):
 
 class ModelEntry(BaseModel):
     """Pydantic model for a complete model entry in MongoDB."""
-    id: Optional[str] = Field(None, alias="_id", description="Unique ID (MongoDB ObjectId as string)")
+    id: str = Field(None, alias="_id", description="Unique ID")
     model_schema: ModelSchema = Field(..., description="Model configuration")
     train_status: ModelTrainStatus = Field(..., description="Model training status")
-    checkpoint_id: Optional[str] = Field(None, description="GridFS ID of the checkpoint file")
-    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
+    checkpoint_id: str = Field(..., description="GridFS ID of the checkpoint file")
+    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
+    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
 
     class Config:
         """Pydantic configuration for MongoDB compatibility."""
+        allow_population_by_field_name = True
         arbitrary_types_allowed = True
         json_encoders = {
             ObjectId: str,  # Convert ObjectId to string for JSON serialization

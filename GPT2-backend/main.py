@@ -1,12 +1,15 @@
-import sys
+import yaml
 import uvicorn
+import argparse
 from fastapi import Depends, Request
-from hydra import initialize, compose
-from omegaconf import DictConfig, OmegaConf
 from data import get_file_path
 from src.workflows import TrainerPipeline
 from src import app, logger, verify_token
 
+# Function to load YAML configuration
+def load_config(config_path):
+    with open(config_path, "r") as file:
+        return yaml.safe_load(file)
 
 # Inference Endpoint
 @app.get("/inference", dependencies=[Depends(verify_token)])
@@ -14,34 +17,46 @@ from src import app, logger, verify_token
 async def inference_endpoint(request: Request):
     return {"message": "Inference result"}
 
-
 # Training Function
-def run_training(cfg: DictConfig):
+def run_training(cfg):
     logger.info(
-        f"\nExperiment:\n{OmegaConf.to_yaml(cfg.experiment)}"
-        f"\nModel:\n{OmegaConf.to_yaml(cfg.model)}"
-        f"\nTokenizer:\n{OmegaConf.to_yaml(cfg.tokenizer)}"
-        f"\nData:\n{OmegaConf.to_yaml(cfg.data)}"
-        f"\nTraining:\n{OmegaConf.to_yaml(cfg.training)}"
-        f"\nLogging:\n{OmegaConf.to_yaml(cfg.logging)}"
-        f"\nmlops:\n{OmegaConf.to_yaml(cfg.mlops)}"
+        f"\nExperiment:\n{cfg.get('experiment',{})}"
+        f"\nModel:\n{cfg.get('model',{})}"
+        f"\nTokenizer:\n{cfg.get('tokenizer',{})}"
+        f"\nData:\n{cfg.get('data',{})}"
+        f"\nTraining:\n{cfg.get('training',{})}"
+        f"\nLogging:\n{cfg.get('logging',{})}"
+        f"\nMLOps:\n{cfg.get('mlops',{})}"
     )
 
     file_path = get_file_path()
     trainer_pipeline = TrainerPipeline(file_path)
     trainer_pipeline.run()
 
-
 # Main Entry Point
 if __name__ == "__main__":
-    mode = sys.argv[1] if len(sys.argv) > 1 else "inference"
+    parser = argparse.ArgumentParser(description="Train or run inference")
+    parser.add_argument("mode", choices=["train", "inference"], help="Mode: train or inference", default="inference")
+    parser.add_argument("--config", type=str, default="config.yaml", help="Path to YAML configuration file")
+    parser.add_argument("--overrides", nargs="*", help="Override config values (e.g., model.lr=0.01)")
 
-    if mode == "train":
-        # Load configuration and start training
-        with initialize(config_path="."):
-            cfg = compose(config_name="config", overrides=sys.argv[2:])
-            run_training(cfg)
-    elif mode == "inference":
+    args = parser.parse_args()
+
+    if args.mode == "train":
+        # Load configuration from YAML
+        cfg = load_config(args.config)
+
+        # Apply overrides (manual parsing)
+        if args.overrides:
+            for override in args.overrides:
+                key, value = override.split("=")
+                keys = key.split(".")
+                temp = cfg
+                for k in keys[:-1]:
+                    temp = temp.setdefault(k, {})
+                temp[keys[-1]] = value
+
+        run_training(cfg)
+
+    elif args.mode == "inference":
         uvicorn.run(app, host="0.0.0.0", port=8000)
-    else:
-        print("Invalid mode. Use 'train' or 'inference'.")

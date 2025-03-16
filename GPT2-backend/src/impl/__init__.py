@@ -6,8 +6,9 @@ from src.impl.model.model import GPT2, IModel
 from src.impl.tokenizer.tokenizer import ITokenizer, Tokenizer
 from src.impl.training.trainer import ITraining, Trainer
 from src.impl.evaluation.loss import estimate_loss
-from src.impl.utils import load_checkpoint, save_checkpoint, split_train_test
 from src.impl.data.dataloader import DataLoader, IDataLoader
+from src.impl.utils.split_batch_utils import split_train_test
+
 
 def init_model(vocab_size) -> IModel:
     return GPT2(vocab_size, Config.block_size, Config.d_model, Config.n_heads, Config.n_layers, Config.dropout)

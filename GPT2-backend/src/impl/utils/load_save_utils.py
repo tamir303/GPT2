@@ -6,12 +6,18 @@ from typing import Tuple
 from src.etc.config import Config
 from src.etc.logger import CustomLogger
 import logging
+import tempfile
 
 from src.repo.model_schema import ModelSchema, ModelTrainStatus
 from src.repo.model_repo import ModelRepository
 
+
 class LoadSaveUtilsClass:
-    def __init__(self, model: nn.Module, optimizer: Optimizer, storage: str = "local", identifier: str = None):
+    def __init__(self,
+                 model: nn.Module,
+                 optimizer: Optimizer,
+                 identifier: str):
+
         # Initialize logger for utils
         self.utils_logger = CustomLogger(
             log_name='Utils',
@@ -20,9 +26,20 @@ class LoadSaveUtilsClass:
             log_filename='utils.log'
         ).get_logger()
 
+        # Create Pydantic ModelSchema
+        model_schema_params = {
+            "type": Config.name,
+            "d_model": Config.d_model,
+            "block_size": Config.block_size,
+            "n_heads": Config.n_heads,
+            "n_layers": Config.n_layers,
+            "dropout": Config.dropout,
+        }
+
+        self.model_schema = ModelSchema(**model_schema_params)
+
         self.model = model
         self.optimizer = optimizer
-        self.storage = storage
         self.identifier = identifier
 
         try:
@@ -31,17 +48,16 @@ class LoadSaveUtilsClass:
             self.utils_logger.error("Error initializing ModelRepository: %s", str(e))
             self.model_repo = None
 
-    def __save_checkpoint_local(self, epoch: int, loss: float, filename: str = "checkpoint.pth") -> str:
+    def __save_checkpoint_temp(self, epoch: int, loss: float) -> str:
         """
-        Save a model checkpoint to a local file.
+        Save a model checkpoint to a temporary file.
 
         Args:
             epoch (int): Current epoch.
             loss (float): Current loss.
-            filename (str): Path to save checkpoint.
 
         Returns:
-            str: Full path of the saved checkpoint file.
+            str: Path to the temporary checkpoint file.
         """
         try:
             checkpoint = {
@@ -51,145 +67,103 @@ class LoadSaveUtilsClass:
                 'loss': loss,
             }
 
-            checkpoint_dir = os.path.abspath(Config.checkpoint_dir)
-            os.makedirs(checkpoint_dir, exist_ok=True)
-            full_path = os.path.join(checkpoint_dir, filename)
-            torch.save(checkpoint, full_path)
+            # Create a temporary file
+            temp_dir = tempfile.gettempdir()
+            temp_file = os.path.join(temp_dir, f"temp_checkpoint_{epoch}.pth")
+            torch.save(checkpoint, temp_file)
 
-            Config.log_debug_activate and self.utils_logger.info("Checkpoint saved at %s for epoch %d, loss %.4f", full_path, epoch, loss)
+            Config.log_debug_activate and self.utils_logger.info(
+                "Temporary checkpoint saved at %s for epoch %d, loss %.4f", temp_file, epoch, loss)
 
-            return full_path
+            return temp_file
         except Exception as e:
-            self.utils_logger.error("Error saving checkpoint to %s: %s", full_path, str(e))
+            self.utils_logger.error("Error saving temporary checkpoint: %s", str(e))
             raise
 
-    def __load_checkpoint_local(self, filename: str = "checkpoint.pth") -> Tuple[int, float, str]:
+    def load_checkpoint(self) -> Tuple[int, float, str | None]:
         """
-        Load a model checkpoint from a local file.
-
-        Args:
-            filename (str): Path to checkpoint file.
+        Load a model checkpoint from MongoDB.
 
         Returns:
-            Tuple[int, float]: (epoch, loss) from the checkpoint.
-        """
-        try:
-            checkpoint_dir = os.path.abspath(Config.checkpoint_dir)
-            os.makedirs(checkpoint_dir, exist_ok=True)
-            full_path = os.path.join(checkpoint_dir, filename)
-            checkpoint = torch.load(full_path)
-
-            if checkpoint is None or not isinstance(checkpoint, dict):
-                raise ValueError("Invalid checkpoint format")
-            self.model.load_state_dict(checkpoint['model_state_dict'])
-            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            epoch: int = checkpoint['epoch']
-            loss: float = checkpoint['loss']
-            self.utils_logger.info("Checkpoint loaded from %s. Resuming from epoch %d, loss %.4f", full_path, epoch, loss)
-            return epoch, loss, filename
-
-        except FileNotFoundError:
-            self.utils_logger.warning("Checkpoint file %s not found, starting from scratch", full_path)
-            return 0, float("inf"), filename
-
-        except Exception as e:
-            self.utils_logger.error("Error loading checkpoint from %s: %s", full_path, str(e))
-            return 0, float("inf"), filename
-
-
-    def load_checkpoint(self) -> Tuple[int, float, str]:
-        """
-        Load a model checkpoint from either local storage or MongoDB.
-
-        Returns:
-            Tuple[int, float]: (epoch, loss) from the checkpoint.
+            Tuple[int, float, str]: (epoch, loss, identifier) from the checkpoint.
 
         Raises:
-            ValueError: If storage type is invalid or MongoDB ID is not found.
+            ValueError: If MongoDB ID is not found or invalid.
         """
-        if self.storage == "local":
-            return self.__load_checkpoint_local()
-        elif self.storage == "mongo":
-            # Load from MongoDB
-            try:
-                model_schema, train_status_schema, checkpoint_io = self.model_repo.load(self.identifier)
-                self.utils_logger.info(f"Loading model... \n schema: {model_schema}, train status: {train_status_schema}")
-                checkpoint = torch.load(checkpoint_io)
 
-                if checkpoint is None or not isinstance(checkpoint, dict):
-                    raise ValueError("Invalid checkpoint format from MongoDB")
-                self.model.load_state_dict(checkpoint['model_state_dict'])
-                self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-                epoch = checkpoint['epoch']
-                loss = checkpoint['loss']
+        try:
+            # Load from MongoDB directly
+            model_schema, train_status_schema, checkpoint_io = self.model_repo.load(self.identifier)
+            self.utils_logger.info(f"Loading model... \n schema: {model_schema}, train status: {train_status_schema}")
 
-                Config.log_debug_activate and self.utils_logger.info("Checkpoint loaded from MongoDB ID %s. Resuming from epoch %d, loss %.4f",
-                                  self.identifier, epoch, loss)
+            # Load checkpoint from IO stream
+            checkpoint = torch.load(checkpoint_io)
 
-                return epoch, loss, self.identifier
-            except ValueError as ve:
-                self.utils_logger.error("Error loading checkpoint from MongoDB ID %s: %s",self. identifier, str(ve))
-                return 0, float("inf"), self.identifier
-            except Exception as e:
-                self.utils_logger.error("Unexpected error loading from MongoDB ID %s: %s", self.identifier, str(e))
-                return 0, float("inf"), self.identifier
-        else:
-            raise ValueError(f"Invalid storage type: {self.storage}. Use 'local' or 'mongo'")
+            if checkpoint is None or not isinstance(checkpoint, dict):
+                raise ValueError("Invalid checkpoint format from MongoDB")
 
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            epoch = checkpoint['epoch']
+            loss = checkpoint['loss']
 
-    def save_checkpoint(self, epoch: int, loss: dict, accuracy: float,) -> str:
+            Config.log_debug_activate and self.utils_logger.info(
+                "Checkpoint loaded from MongoDB ID %s. Resuming from epoch %d, loss %.4f",
+                self.identifier, epoch, loss)
+
+            return epoch, loss, self.identifier
+        except ValueError as ve:
+            self.utils_logger.error("Error loading checkpoint from MongoDB ID %s: %s", self.identifier, str(ve))
+            return 0, float("inf"), None
+        except Exception as e:
+            self.utils_logger.error("Unexpected error loading from MongoDB ID %s: %s", self.identifier, str(e))
+            return 0, float("inf"), None
+
+    def save_checkpoint(self, epoch: int, loss: dict, accuracy: float) -> str:
         """
-            Save a model checkpoint to either local storage or MongoDB.
+        Save a model checkpoint to MongoDB only.
 
-            Args:
-                epoch (int): Current epoch.
-                loss (float): Current loss.
-                accuracy (float): Current accuracy.
+        Args:
+            epoch (int): Current epoch.
+            loss (dict): Dictionary containing loss values.
+            accuracy (float): Current accuracy.
 
-            Returns:
-                str: Full path (local) or MongoDB ModelEntry ID.
+        Returns:
+            str: MongoDB ModelEntry ID.
 
-            Raises:
-                ValueError: If storage type is invalid or schema is missing for MongoDB.
-            """
-        if self.storage == "local":
-            return self.__save_checkpoint_local(epoch, loss["validation"])
-        elif self.storage == "mongo":
-            # Create Pydantic ModelSchema
-            model_schema_params = {
-                "type": Config.name,
-                "d_model": Config.d_model,
-                "block_size": Config.block_size,
-                "n_heads": Config.n_heads,
-                "n_layers": Config.n_layers,
-                "dropout": Config.dropout,
-            }
+        Raises:
+            ValueError: If schema is missing for MongoDB.
+        """
 
-            model_schema = ModelSchema(**model_schema_params)
+        # Create ModelTrainStatus
+        model_train_status_params = {
+            "current_epoch": epoch,
+            "val_loss": loss["validation"],
+            "train_loss": loss["train"],
+            "accuracy": accuracy
+        }
 
-            # Create ModelTrainStatus
-            model_train_status_params = {
-                "current_epoch": epoch,
-                "val_loss": loss["validation"],
-                "train_loss": loss["train"],
-                "accuracy": accuracy
-            }
+        model_train_status = ModelTrainStatus(**model_train_status_params)
 
-            model_train_status = ModelTrainStatus(**model_train_status_params)
+        # Save checkpoint to a temporary file first
+        temp_path = self.__save_checkpoint_temp(epoch, loss["validation"])
 
-            # Save checkpoint locally first, then upload to MongoDB
-            temp_path = self.__save_checkpoint_local(epoch, loss["validation"])
-
+        try:
             # Save to MongoDB and get the ModelEntry ID
-            model_id = self.model_repo.save(model_schema, model_train_status ,temp_path)
+            model_id = self.model_repo.save(self.identifier, self.model_schema, model_train_status, temp_path)
 
-            # Clean up temporary file
-            try:
-                os.remove(temp_path)
-                Config.log_debug_activate and self.utils_logger.info("Temporary file %s removed after MongoDB upload", temp_path)
-            except Exception as e:
-                self.utils_logger.warning("Failed to remove temporary file %s: %s", temp_path, str(e))
+            Config.log_debug_activate and self.utils_logger.info("Model saved to MongoDB with ID: %s", model_id)
 
             return model_id
-        else:
-            raise ValueError(f"Invalid storage type: {self.storage}. Use 'local' or 'mongo'")
+        except Exception as e:
+            self.utils_logger.error("Failed to save model to MongoDB: %s", str(e))
+            raise
+        finally:
+            # Clean up temporary file
+            try:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                    Config.log_debug_activate and self.utils_logger.info(
+                        "Temporary file %s removed after MongoDB upload", temp_path)
+            except Exception as e:
+                self.utils_logger.warning("Failed to remove temporary file %s: %s", temp_path, str(e))

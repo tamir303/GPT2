@@ -1,12 +1,11 @@
 import uuid
-
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from gridfs import GridFS
-from bson.objectid import ObjectId
 from io import BytesIO
 from datetime import datetime
 import os
+from bson.objectid import ObjectId
 
 from src.repo.model_schema import ModelSchema, ModelEntry, ModelTrainStatus
 
@@ -18,6 +17,7 @@ class ModelRepository:
     Repository class to manage model entries in MongoDB with Pydantic validation.
     Uses GridFS for storing checkpoint.pth files.
     """
+
     def __init__(self, uri: str = os.getenv("MONGO_URI"), database_name: str = os.getenv("MONGO_DB")):
         """
         Initialize the repository with a MongoDB connection.
@@ -29,15 +29,17 @@ class ModelRepository:
         self.client = MongoClient(uri)
         self.db = self.client[database_name]
         self.models = self.db["models"]  # Collection for model schemas
-        self.fs = GridFS(self.db)        # GridFS for checkpoint files
+        self.fs = GridFS(self.db)  # GridFS for checkpoint files
 
-    def save(self, model_schema: ModelSchema, train_status: ModelTrainStatus ,checkpoint_file: str) -> str:
+    def save(self, model_id: str ,model_schema: ModelSchema, train_status: ModelTrainStatus, checkpoint_file: str) -> str:
         """
         Save a model schema and its checkpoint file.
 
         Args:
             model_schema (ModelSchema): Validated model configuration.
+            train_status (ModelTrainStatus): Model training status.
             checkpoint_file (str): Path to the checkpoint.pth file.
+            model_id (str): Unique identifier for the model.
 
         Returns:
             str: The unique ID of the saved model entry.
@@ -45,9 +47,6 @@ class ModelRepository:
         Raises:
             FileNotFoundError: If the checkpoint file does not exist.
             ValueError: If schema validation fails (handled by Pydantic).
-            :param checkpoint_file:
-            :param model_schema:
-            :param train_status:
         """
         if not os.path.exists(checkpoint_file):
             raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_file}")
@@ -59,20 +58,31 @@ class ModelRepository:
         # Create ModelEntry instance
         now = datetime.utcnow()
         entry = ModelEntry(
-            _id = uuid.uuid4().__str__(),
-            model_schema = model_schema,
-            train_status = train_status,
-            checkpoint_id = str(checkpoint_id),
-            created_at = now,
-            updated_at = now
+            _id=model_id,
+            model_schema=model_schema,
+            train_status=train_status,
+            checkpoint_id=str(checkpoint_id),
+            created_at=now,
+            updated_at=now
         )
 
         # Insert into MongoDB
-        document = entry.dict(by_alias=True, exclude={"id"})  # Exclude 'id' as MongoDB generates it
-        result = self.models.insert_one(document)
-        return str(result.inserted_id)
+        document = self.models.find_one({"_id": model_id})
+        if document:
+            # Update existing document
+            result = self.models.update_one(
+                {"_id": model_id},
+                {"$set": entry.dict(by_alias=True)}
+            )
+            return str(result.upserted_id)
+        else:
+            # Insert new document
+            document = entry.dict(by_alias=True)
+            document["_id"] = model_id
+            result = self.models.insert_one(document)
+            return str(result.inserted_id)
 
-    def load(self, model_id: str) -> tuple[ModelSchema, ModelTrainStatus ,BytesIO]:
+    def load(self, model_id: str) -> tuple[ModelSchema, ModelTrainStatus, BytesIO]:
         """
         Load a model schema and its checkpoint file by ID.
 
@@ -80,19 +90,28 @@ class ModelRepository:
             model_id (str): The unique ID of the model entry.
 
         Returns:
-            tuple: (schema: ModelSchema, checkpoint_io: BytesIO) containing the schema and checkpoint data.
+            tuple: (schema: ModelSchema, train_status: ModelTrainStatus, checkpoint_io: BytesIO)
+                   containing the schema, training status, and checkpoint data.
 
         Raises:
             ValueError: If the model ID is invalid or not found.
         """
+        # Check if model_id is a valid ObjectId or a UUID string
+        document = None
         try:
-            obj_id = ObjectId(model_id)
-        except Exception:
-            raise ValueError("Invalid model ID")
+            # First try as ObjectId
+            if ObjectId.is_valid(model_id):
+                document = self.models.find_one({"_id": ObjectId(model_id)})
 
-        document = self.models.find_one({"_id": obj_id})
-        if document is None:
-            raise ValueError("Model not found")
+            # If not found, try as string (UUID)
+            if not document:
+                document = self.models.find_one({"_id": model_id})
+
+            if not document:
+                raise ValueError("Model not found with ID: " + model_id)
+
+        except Exception as e:
+            raise ValueError(f"Invalid model ID or database error: {str(e)}")
 
         # Convert to Pydantic model
         entry = ModelEntry.from_mongo(document)
@@ -102,7 +121,7 @@ class ModelRepository:
         checkpoint_data = self.fs.get(checkpoint_id).read()
         checkpoint_io = BytesIO(checkpoint_data)
 
-        return entry.model_schema, entry.train_status ,checkpoint_io
+        return entry.model_schema, entry.train_status, checkpoint_io
 
     def list_all(self) -> list[ModelEntry]:
         """
@@ -127,14 +146,22 @@ class ModelRepository:
         Raises:
             ValueError: If the model ID is invalid or not found.
         """
+        document = None
         try:
-            obj_id = ObjectId(model_id)
-        except Exception:
-            raise ValueError("Invalid model ID")
+            # First try as ObjectId
+            if ObjectId.is_valid(model_id):
+                document = self.models.find_one({"_id": ObjectId(model_id)})
 
-        document = self.models.find_one({"_id": obj_id})
-        if document is None:
-            raise ValueError("Model not found")
+            # If not found, try as string (UUID)
+            if not document:
+                document = self.models.find_one({"_id": model_id})
+
+            if not document:
+                raise ValueError("Model not found with ID: " + model_id)
+
+        except Exception as e:
+            raise ValueError(f"Invalid model ID or database error: {str(e)}")
+
         return ModelEntry.from_mongo(document)
 
     def delete(self, model_id: str):
@@ -147,19 +174,31 @@ class ModelRepository:
         Raises:
             ValueError: If the model ID is invalid or not found.
         """
+        document = None
         try:
-            obj_id = ObjectId(model_id)
-        except Exception:
-            raise ValueError("Invalid model ID")
+            # First try as ObjectId
+            if ObjectId.is_valid(model_id):
+                document = self.models.find_one({"_id": ObjectId(model_id)})
 
-        document = self.models.find_one({"_id": obj_id})
-        if document is None:
-            raise ValueError("Model not found")
+            # If not found, try as string (UUID)
+            if not document:
+                document = self.models.find_one({"_id": model_id})
+
+            if not document:
+                raise ValueError("Model not found with ID: " + model_id)
+
+        except Exception as e:
+            raise ValueError(f"Invalid model ID or database error: {str(e)}")
 
         # Delete checkpoint from GridFS and entry from collection
         checkpoint_id = ObjectId(document["checkpoint_id"])
         self.fs.delete(checkpoint_id)
-        self.models.delete_one({"_id": obj_id})
+
+        # Delete using the appropriate ID type
+        if ObjectId.is_valid(model_id):
+            self.models.delete_one({"_id": ObjectId(model_id)})
+        else:
+            self.models.delete_one({"_id": model_id})
 
     def close(self):
         """Close the MongoDB client connection."""
