@@ -6,6 +6,7 @@ import logging
 from src.etc.logger import CustomLogger
 from src.impl.model import EmbeddingTable, PositionalEncoding, Block
 from src.interfaces.model import IModel
+from src.etc.config import Config
 
 
 class GPT2(IModel):
@@ -43,7 +44,7 @@ class GPT2(IModel):
         }
 
         # Initialize components
-        self.emb_enc_tokens = EmbeddingTable(self.vocab_size, self.d_model)
+        self.emb_enc_tokens = EmbeddingTable(self.d_model, self.vocab_size)
         self.emb_pos = PositionalEncoding(self.d_model, self.block_size)
         self.blocks = nn.Sequential(*[Block(**self.mh_params) for _ in range(self.num_layers)])
         self.ln_f = nn.LayerNorm(self.d_model)
@@ -60,7 +61,8 @@ class GPT2(IModel):
 
         # Precompute positional encoding once (on CPU) and register as a buffer
         with torch.no_grad():
-            pos_enc = self.emb_pos(torch.arange(self.block_size, device=torch.device("cpu")))
+            pos_ids = torch.arange(self.d_model, device=torch.device("cpu")).unsqueeze(0).expand(self.block_size, -1)
+            pos_enc = self.emb_pos(pos_ids)
         self.register_buffer("pos_encoding", pos_enc)
 
     def _init_weights(self, module):
@@ -98,10 +100,16 @@ class GPT2(IModel):
 
         B, T, C = logits.shape
         logits_flat = logits.view(B * T, C)
-        targets_flat = targets.view(B * T)
+        targets_flat = targets.reshape(B * T)
         loss = F.cross_entropy(logits_flat, targets_flat)
-        self.logger.debug("Forward pass: batch_size=%d, seq_len=%d, loss=%.4f", B, T, loss.item())
-        return logits, loss
+        Config.log_debug_activate and self.logger.debug("Forward pass: batch_size=%d, seq_len=%d, loss=%.4f", B, T, loss.item())
+
+        predictions = torch.argmax(logits, dim=-1)
+        correct = (predictions == targets).sum().item()
+        total = targets.numel()
+        accuracy = correct / total
+
+        return logits, loss, accuracy
 
     def generate(self, idx: torch.Tensor, max_new_tokens: int):
         self.logger.info("Generating %d new tokens", max_new_tokens)

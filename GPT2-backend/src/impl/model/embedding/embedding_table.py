@@ -3,6 +3,7 @@ import torch.nn as nn
 import logging
 
 from src.etc.logger import CustomLogger
+from src.etc.config import Config
 
 # Initialize logger for EmbeddingTable
 embedding_logger = CustomLogger(
@@ -28,7 +29,7 @@ class EmbeddingTable(nn.Module):
     def forward(self, x: torch.Tensor):
         try:
             output = self.et(x)  # (B, T, C)
-            embedding_logger.debug(f"Forward pass completed: input shape={x.shape}, output shape={output.shape}")
+            Config.log_debug_activate and embedding_logger.debug(f"Forward pass completed: input shape={x.shape}, output shape={output.shape}")
             return output
         except Exception as e:
             embedding_logger.error(f"Error in forward pass with input shape={x.shape}: {str(e)}")

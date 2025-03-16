@@ -1,17 +1,15 @@
 import sys
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-import jwt
-from jwt import PyJWTError
 from dotenv import load_dotenv
 import os
+import jwt
 
 load_dotenv()
 
 # JWT configuration (store SECRET_KEY securely, e.g., in environment variables)
-DEFAULT_ALGORITHM = "HS256"
 SECRET_KEY = os.getenv("API_KEY")
-ALGORITHM = os.getenv("ALGORITHM", DEFAULT_ALGORITHM)
+ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
 
 if not SECRET_KEY:
     print("ERROR: API_KEY is not set in environment variables.", file=sys.stderr)
@@ -25,7 +23,7 @@ def verify_token(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except PyJWTError:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",

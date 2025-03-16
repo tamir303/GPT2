@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 from src.etc.logger import CustomLogger, logging
+from src.etc.config import Config
 
 pos_encoding_logger = CustomLogger(
     log_name='PositionalEncoding',
@@ -41,7 +42,7 @@ class PositionalEncoding(nn.Module):
                 )
                 seq_len = self.pe.size(0)
             output = x + self.pe[:seq_len]
-            pos_encoding_logger.debug(f"Forward pass completed: input shape={x.shape}, output shape={output.shape}")
+            Config.log_debug_activate and pos_encoding_logger.debug(f"Forward pass completed: input shape={x.shape}, output shape={output.shape}")
             return output
         except Exception as e:
             pos_encoding_logger.error(f"Error in forward pass with input shape={x.shape}: {str(e)}")

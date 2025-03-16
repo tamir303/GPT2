@@ -14,13 +14,14 @@ from src.etc.config import Config
 class Tokenizer(ITokenizer):
     """Efficient SentencePiece Tokenizer with multiprocessing training."""
 
-    __MODEL_FILE = "tok400.model"
+    __MODEL_DIR = "tokenizer"
+    __MODEL_FILE = os.path.join(__MODEL_DIR, "tok400.model")
 
     __options = {
         "input_format": "text",
-        "model_prefix": "tok400",
+        "model_prefix": os.path.join(__MODEL_DIR, "tok400"),
         "model_type": "bpe",
-        "vocab_size": 1000,
+        "vocab_size": 10000,
         "normalization_rule_name": "identity",
         "remove_extra_whitespaces": False,
         "input_sentence_size": 200000000,
@@ -40,7 +41,7 @@ class Tokenizer(ITokenizer):
         "bos_id": 1,
         "eos_id": 2,
         "pad_id": -1,
-        "num_threads": os.cpu_count(),  # Utilize all CPU cores
+        "num_threads": os.cpu_count(),
     }
 
     def __init__(self, file_path: str):
@@ -57,6 +58,9 @@ class Tokenizer(ITokenizer):
         self.file_path = os.path.abspath(file_path)
         self.sp = spm.SentencePieceProcessor()
 
+        # Ensure tokenizer directory exists
+        os.makedirs(self.__MODEL_DIR, exist_ok=True)
+
         # Try to load existing model or train a new one
         self._setup_tokenizer()
 
@@ -68,6 +72,7 @@ class Tokenizer(ITokenizer):
                 self.logger.info("Loaded existing SentencePiece model.")
             else:
                 self.logger.warning("SentencePiece model not found, starting training...")
+                self.__options["input"] = self.file_path
                 self.train_model()
         except Exception as e:
             self.logger.error(f"Error loading SentencePiece model: {str(e)}")
@@ -77,13 +82,14 @@ class Tokenizer(ITokenizer):
         """Train SentencePiece model using multiprocessing."""
         self.logger.info("Training SentencePiece model using multiprocessing...")
 
-        self.__options["input"] = self.file_path  # Set input file
-
         system_workers = min(Config.num_workers, os.cpu_count())
         num_workers = max(1, system_workers // 2)  # Avoid freezing the system
 
+        # Ensure tokenizer directory exists before training
+        os.makedirs(self.__MODEL_DIR, exist_ok=True)
+
         with multiprocessing.Pool(processes=num_workers) as pool:
-            pool.apply(spm.SentencePieceTrainer.Train, (self.__options,))
+            pool.apply(spm.SentencePieceTrainer.Train, kwds=self.__options)
 
         self.sp.Load(self.__MODEL_FILE)  # Load the newly trained model
         self.logger.info("Finished training and loading SentencePiece model.")

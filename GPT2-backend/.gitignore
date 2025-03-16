@@ -244,5 +244,4 @@ runs
 mlruns
 temp_files
 checkpoint.pth
-tok400.model
-tok4.vocab
+tokenizer/

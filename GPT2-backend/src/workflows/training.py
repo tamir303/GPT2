@@ -1,4 +1,7 @@
 import logging
+
+import torch
+
 from src.etc.logger import CustomLogger
 from src.impl import init_tokenizer, init_model, init_trainer, get_loss, initialize_optimizer, split_data, get_data_loader
 from src.etc.config import HyperParams, Config
@@ -35,7 +38,7 @@ class TrainerPipeline:
 
     def run(self):
         # Combine the loaded lines into a single text string
-        data_text = "\n".join(self.data_loader.get_file_content())
+        data_text = "".join(self.data_loader.get_file_content())
         self.logger.debug("Loaded data text with length: %d", len(data_text))
 
         # Encode the text into a tensor representation

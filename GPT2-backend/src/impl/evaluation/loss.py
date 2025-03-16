@@ -3,10 +3,11 @@ from typing import Dict
 import torch
 from torch import nn
 import logging
+import tqdm
 
 from src.etc.logger import CustomLogger
 from src.etc.config import Config
-from src.impl.utils import get_batch, split_train_test
+from src.impl.utils.split_batch_utils import get_batch, split_train_test
 
 # Initialize logger for evaluation
 eval_logger = CustomLogger(
@@ -39,17 +40,18 @@ def estimate_loss(model: nn.Module, data: torch.Tensor) -> Dict:
 
     try:
         train, val = split_train_test(data)
-        eval_logger.debug(f"Data split: train shape={train.shape}, val shape={val.shape}")
+        Config.log_debug_activate and eval_logger.debug(f"Data split: train shape={train.shape}, val shape={val.shape}")
     except Exception as e:
         eval_logger.error(f"Error splitting data: {str(e)}")
         return out
 
     for split_type, split_data in [("train", train), ("validation", val)]:
         losses = torch.zeros(Config.eval_iters)
-        for iter in range(Config.eval_iters):
+
+        for iter in tqdm.tqdm(range(Config.eval_iters), desc=f"Estimating {split_type} loss", colour='green'):
             try:
                 x, y = get_batch(split_data)
-                _, loss = model(x, y)
+                _, loss, acc = model(x, y)
                 if loss is None:
                     eval_logger.warning(f"Loss is None for {split_type} split at iteration {iter}")
                     losses[iter] = 0.0  # Default to 0 if loss is None
@@ -62,14 +64,14 @@ def estimate_loss(model: nn.Module, data: torch.Tensor) -> Dict:
         try:
             mean_loss = losses.mean()
             out[split_type] = mean_loss
-            eval_logger.info(f"{split_type.capitalize()} loss: {mean_loss:.4f}")
+            Config.log_debug_activate and eval_logger.debug(f"{split_type.capitalize()} loss: {mean_loss:.4f}")
         except Exception as e:
             eval_logger.error(f"Error calculating mean loss for {split_type}: {str(e)}")
             out[split_type] = 0.0  # Default to 0 if mean calculation fails
 
     try:
         model.train()
-        eval_logger.info("Loss estimation completed, model set back to train mode")
+        Config.log_debug_activate and eval_logger.debug("Loss estimation completed, model set back to train mode")
     except Exception as e:
         eval_logger.error(f"Failed to set model back to train mode: {str(e)}")
 

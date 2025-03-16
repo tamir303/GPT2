@@ -22,13 +22,16 @@ def get_loss(model: IModel, data: torch.Tensor) -> dict:
     return estimate_loss(model, data)
 
 def initialize_optimizer(model, config: HyperParams) -> any:
+    model.to(Config.device)
+
     if config.optimizer_type == 'AdamW':
         return AdamW(
-            model.parameters(),
+            [p for p in model.parameters() if p.requires_grad],
             lr=float(config.learning_rate),
             weight_decay=float(config.weight_decay),
             betas=(float(config.beta1), float(config.beta2)),
-            eps=float(config.epsilon)
+            eps=float(config.epsilon),
+            foreach=True
         )
     else:
         raise ValueError(f"Unsupported optimizer type: {config.optimizer_type}")
@@ -36,5 +39,5 @@ def initialize_optimizer(model, config: HyperParams) -> any:
 def split_data(data: torch.Tensor, split: float):
     return split_train_test(data, split)
 
-def get_data_loader(data: torch.Tensor) -> IDataLoader:
-    return DataLoader(data)
+def get_data_loader(file_path: str) -> IDataLoader:
+    return DataLoader(file_path)

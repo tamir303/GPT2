@@ -26,6 +26,7 @@ class HyperParams:
     max_iters: int
     batch_size: int
     eval_interval: int
+    eval_iters: int
     save_interval: int
     learning_rate: float
     warmup_steps: int
@@ -34,7 +35,7 @@ class HyperParams:
     patience: int
     device: str
     load_existing_model: bool
-    checkpoint_file: str
+    checkpoint_dir: str
     optimizer_type: str
     weight_decay: float
     beta1: float
@@ -43,8 +44,8 @@ class HyperParams:
 
     # Logging and Monitoring
     log_dir: str
-    model_save_dir: str
     log_level: str
+    log_debug_activate: bool
     mlflow_tracking_uri: str
     mlflow_enabled: bool
 
@@ -80,6 +81,7 @@ def load_config(config_path: str) -> HyperParams:
     return HyperParams(**flat_config)
 
 Config = load_config("config.yaml")
+Config.device = "cuda" if torch.cuda.is_available() else "cpu"
 
 torch.manual_seed(Config.seed)
 torch.cuda.manual_seed_all(Config.seed)

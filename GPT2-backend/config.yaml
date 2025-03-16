@@ -14,26 +14,27 @@ data:
 # Model Configuration
 model:
   type: "GPT2"                      # Model class name
-  d_model: 768                      # Embedding dimension
+  d_model: 256                      # Embedding dimension
   block_size: 32                    # Block size
-  n_heads: 12                       # Number of attention heads
-  n_layers: 12                      # Number of transformer blocks
+  n_heads: 4                        # Number of attention heads
+  n_layers: 3                       # Number of transformer blocks
   dropout: 0.1                      # Dropout rate
 
 # Training Configuration
 training:
-  max_iters: 5000                  # Maximum training iterations
+  max_iters: 5000                   # Maximum training iterations
   batch_size: 16                    # Batch size
-  eval_interval: 500                # How often to evaluate
-  save_interval: 100               # How often to save periodic checkpoints
+  eval_interval: 100                # How often to evaluate
+  eval_iters: 50                    # Number of iterations to evaluate
+  save_interval: 100                # How often to save periodic checkpoints
   learning_rate: 0.0003             # Initial learning rate
   warmup_steps: 1000                # Warmup steps for LR scheduler
   max_steps: 10000                  # Max steps for LR scheduler (often same as max_iters)
   max_grad_norm: 1.0                # Gradient clipping threshold
   patience: 5                       # Early stopping patience
   device: "cuda"                    # Training device (cuda/cpu)
-  load_existing_model: false        # Whether to load a checkpoint
-  checkpoint_file: "checkpoint.pt"  # Default checkpoint filename
+  load_existing_model: true        # Whether to load a checkpoint
+  checkpoint_dir: "checkpoints/"    # Directory for periodic checkpoints
   optimizer_type: "AdamW"           # Optimizer class name
   weight_decay: 0.01                # Moderate regularization
   beta1: 0.9                        # Standard momentum decay
@@ -42,9 +43,9 @@ training:
 
 # Logging and Monitoring
 logging:
-  log_dir: "runs/"                  # Directory for TensorBoard logs
-  model_save_dir: "models/"         # Directory for model checkpoints
-  log_level: "DEBUG"                # Logging verbosity (DEBUG, INFO, etc.)
+  log_dir: "runs/"                              # Directory for TensorBoard logs
+  log_level: "INFO"                            # Logging verbosity (DEBUG, INFO, etc.)
+  log_debug_activate: false                     # Activate debug logging
   mlflow_tracking_uri: "http://localhost:5000"  # MLflow server URI
   mlflow_enabled: true                          # Enable MLflow tracking
 
