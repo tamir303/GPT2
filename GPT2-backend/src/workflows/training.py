@@ -63,6 +63,9 @@ class TrainerPipeline:
             save_callable = self.save_load_handler.save_checkpoint
         )
 
+        # Close repo and save the model in cloud
+        self.save_load_handler.close_repo()
+
         # Evaluate the model and log test loss
         test_loss = get_loss(self.model, test_data)
         self.logger.info("Test Loss: %.4f", test_loss)

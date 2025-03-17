@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend_server
+    ports:
+      - "8000:8000"
+    environment:
+      - API_KEY=y7fXarm2Rr1JcXXutBqE4Oi3HO4pkwApAV3l4SKikvsfycc0r4OVlkuGHQtHOd1Xyo99qYk7MoI53Mg0orcHnVH9aGu7dNsP6mGrH0kmDhtnoNmw831PwVozqXPPOQda
+
+      - MONGO_CLOUD_URI=mongodb+srv://GPTUser:<db_password>@cluster0.9i7nv.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+      - MONGO_CLOUD_DB=model_registry
+      - MONGO_CLOUD_PASS=58uT3kmxPTj19jOn
+
+      - MONGO_LOCAL_URI=mongodb://localhost:27017/
+      - MONGO_LOCAL_DB=model_registry
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:

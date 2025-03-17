@@ -21,6 +21,7 @@ class HyperParams:
     n_heads: int
     n_layers: int
     dropout: float
+    max_tokens: int
 
     # Training Configuration
     max_iters: int

@@ -1,27 +1,39 @@
 import yaml
-from torch import nn
-from torch.optim import Optimizer
 
-from src.etc.config import Config
+from src.etc.config import Config, HyperParams
 from src.etc.logger import CustomLogger
+from src.impl import init_model, init_tokenizer, initialize_optimizer
+from src.impl.utils.load_save_utils import LoadSaveUtilsClass
+
 
 class InferencePipeline:
-    def __init__(self, model: nn.Module, optimizer: Optimizer):
+    def __init__(self, file_path: str):
         self.logger = CustomLogger(
             log_name = "InferencePipeline",
             log_level = Config.log_level,
             log_filename="inference.log"
         ).get_logger()
 
-        self.logger.info("Inference pipeline initialized.")
-        self.model = model
-        self.optimizer = optimizer
+        self.logger.info("Initializing Inference pipeline...")
+        self.config: HyperParams = Config
+
+        self.logger.info("Initializing Tokenizer...")
+        self.tokenizer = init_tokenizer(file_path)
+
+        self.model = init_model(self.tokenizer.get_vocab_size())
+        self.optimizer = initialize_optimizer(self.model, self.config)
 
         model_id = self.__get_model_id()
         self.save_load_handler = LoadSaveUtilsClass(self.model, self.optimizer, model_id)
+        self.save_load_handler.load_checkpoint()
 
-    def run(self):
-        pass
+        self.logger.info("Inference pipeline ready.")
+
+    def run(self, context: str):
+        encoded_context = self.tokenizer.encode(context)
+        generated_ids = self.model.generate(encoded_context, Config.max_tokens)
+        generated_tokens = self.tokenizer.decode(generated_ids[0])
+        return generated_tokens
 
 
     def __get_model_id(self):
@@ -41,6 +53,4 @@ class InferencePipeline:
             print(f"Error parsing YAML file: {e}")
         except Exception as e:
             print(f"Unexpected error: {e}")
-
-    def __model_loader(self, model_id: str):
 

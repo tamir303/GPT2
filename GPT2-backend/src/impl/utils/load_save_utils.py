@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+
 import torch
 from torch import nn
 from torch.optim import Optimizer
@@ -6,7 +8,6 @@ from typing import Tuple
 from src.etc.config import Config
 from src.etc.logger import CustomLogger
 import logging
-import tempfile
 
 from src.repo.model_schema import ModelSchema, ModelTrainStatus
 from src.repo.model_repo import ModelRepository
@@ -57,7 +58,7 @@ class LoadSaveUtilsClass:
             loss (float): Current loss.
 
         Returns:
-            str: Path to the temporary checkpoint file.
+            str: Full path to the temporary checkpoint file.
         """
         try:
             checkpoint = {
@@ -67,15 +68,18 @@ class LoadSaveUtilsClass:
                 'loss': loss,
             }
 
-            # Create a temporary file
-            temp_dir = tempfile.gettempdir()
-            temp_file = os.path.join(temp_dir, f"temp_checkpoint_{epoch}.pth")
+            # Create a temporary directory for checkpoints
+            temp_dir = Path("temp_checkpoints")
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            temp_file = temp_dir / f"temp_checkpoint_{self.identifier}.pth"
             torch.save(checkpoint, temp_file)
 
-            Config.log_debug_activate and self.utils_logger.info(
-                "Temporary checkpoint saved at %s for epoch %d, loss %.4f", temp_file, epoch, loss)
+            if Config.log_debug_activate:
+                self.utils_logger.info(
+                    "Temporary checkpoint saved at %s for epoch %d, loss %.4f", temp_file, epoch, loss
+                )
 
-            return temp_file
+            return str(temp_file)
         except Exception as e:
             self.utils_logger.error("Error saving temporary checkpoint: %s", str(e))
             raise
@@ -167,3 +171,7 @@ class LoadSaveUtilsClass:
                         "Temporary file %s removed after MongoDB upload", temp_path)
             except Exception as e:
                 self.utils_logger.warning("Failed to remove temporary file %s: %s", temp_path, str(e))
+
+
+    def close_repo(self):
+        self.model_repo.close()
